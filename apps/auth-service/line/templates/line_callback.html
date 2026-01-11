@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Login Success</title></head>
+<body>
+  <p>กำลังเข้าสู่ระบบ...</p>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const access = params.get("access");
+    const name = params.get("name");
+    const userImage = params.get("user_image_url")
+
+    if (access && name) {
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("user_name", name);
+      localStorage.setItem("user_image_url", userImage);
+
+      window.location.href = "/items/scan";
+    } else {
+      alert("Login failed.");
+    }
+  </script>
+</body>
+</html>

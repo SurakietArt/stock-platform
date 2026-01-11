@@ -9,45 +9,85 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
-
+import os
 from pathlib import Path
+
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
+ENV = environ.Env(
+    SECRET_KEY=(str, "django-insecure"),
+    DATABASE_PORT=(int, 5432),
+    DATABASE_HOSTNAME=(str, "localhost"),
+    DATABASE_NAME=(str, "stock"),
+    DATABASE_USER=(str, "postgres"),
+    DATABASE_PASSWORD=(str, "postgres"),
+    TOKEN_LIFE_TIME=(int, 1),  # hrs
+    REFRESH_TOKEN_LIFE_TIME=(int, 360),  # sec
+    LINE_LOGIN_URL=(str, "LINE_LOGIN_URL"),
+    LINE_GET_TOKEN_URL=(str, "LINE_GET_TOKEN_URL"),
+    LINE_LOGIN_REDIRECT_URI=(str, "LINE_LOGIN_REDIRECT_URI"),
+    LINE_LOGIN_CHANNEL_SECRET=(str, "LINE_LOGIN_CHANNEL_SECRET"),
+    LINE_LOGIN_CLIENT_ID=(str, "LINE_LOGIN_CLIENT_ID"),
+    FRONTEND_REDIRECT_URL=(str, "FRONTEND_REDIRECT_URL"),
+    LINE_API_BASE_URL=(str, 'LINE_API_BASE_URL'),
+    LINE_MESSAGE_ACCESS_TOKEN=(str, 'LINE_MESSAGE_ACCESS_TOKEN'),
+    LINE_USER_GET_ALERT_THRESHOLD=(str, "LINE_USER_GET_ALERT_THRESHOLD")
+)
+
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-fk&o(jyfg%fg!*!y#$f7s92dq=3-8##7@09sl3s4issj!yw$y&'
+SECRET_KEY = ENV("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # django
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # django rest framework
+    'rest_framework',
+    # app
+    'line',
+    "core"
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("core.middleware.auth_middleware.JWTAuthenticationMiddleware",),
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.TemplateHTMLRenderer',
+    ],
+}
 
 ROOT_URLCONF = 'auth_service.urls'
 
@@ -73,13 +113,22 @@ WSGI_APPLICATION = 'auth_service.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get("DATABASE_URL") is not None:
+    DATABASES = {
+        # variable name default to DATABASE_URL
+        "default": ENV.db_url(),
     }
-}
-
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": ENV("DATABASE_NAME"),
+            "USER": ENV("DATABASE_USER"),
+            "PASSWORD": ENV("DATABASE_PASSWORD"),
+            "HOST": ENV("DATABASE_HOSTNAME"),
+            "PORT": ENV("DATABASE_PORT"),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -121,3 +170,19 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = "core.Users"
+SESSION_COOKIE_SECURE = True
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+LINE_LOGIN_URL = ENV("LINE_LOGIN_URL")
+LINE_GET_TOKEN = ENV("LINE_GET_TOKEN_URL")
+LINE_LOGIN_REDIRECT_URI = ENV("LINE_LOGIN_REDIRECT_URI")
+LINE_LOGIN_CHANNEL_SECRET = ENV("LINE_LOGIN_CHANNEL_SECRET")
+LINE_LOGIN_CLIENT_ID = ENV("LINE_LOGIN_CLIENT_ID")
+FRONTEND_REDIRECT_URL = ENV("FRONTEND_REDIRECT_URL")
+LINE_API_BASE_URL = ENV("LINE_API_BASE_URL")
+LINE_MULTICAST_URL = ENV("LINE_MULTICAST_URL")
+LINE_MESSAGE_ACCESS_TOKEN = ENV("LINE_MESSAGE_ACCESS_TOKEN")
+LINE_USER_GET_ALERT_THRESHOLD = ENV("LINE_USER_GET_ALERT_THRESHOLD").split(",")
